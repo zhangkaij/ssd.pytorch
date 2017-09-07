@@ -166,7 +166,6 @@ def train():
             loc_loss = 0
             conf_loss = 0
             epoch += 1
-
         # load train data
         images, targets = next(batch_iterator)
 
@@ -188,6 +187,7 @@ def train():
         t1 = time.time()
         loc_loss += loss_l.data[0]
         conf_loss += loss_c.data[0]
+        
         if iteration % 10 == 0:
             print('Timer: %.4f sec.' % (t1 - t0))
             print('iter ' + repr(iteration) + ' || Loss: %.4f ||' % (loss.data[0]), end=' ')

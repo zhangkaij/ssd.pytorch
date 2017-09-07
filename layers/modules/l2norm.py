@@ -18,6 +18,6 @@ class L2Norm(nn.Module):
 
     def forward(self, x):
         norm = x.pow(2).sum(1).sqrt()+self.eps
-        x/=norm.expand_as(x)
+        x/=norm.unsqueeze(1).expand_as(x)
         out = self.weight.unsqueeze(0).unsqueeze(2).unsqueeze(3).expand_as(x) * x
         return out
