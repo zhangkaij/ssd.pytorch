@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 import torch.nn.functional as F
 from torch.autograd import Variable
 from layers import *
@@ -109,6 +110,19 @@ class SSD(nn.Module):
             )
 
         return output
+
+    def load_pretrained_npy(self, path):
+        
+        pretrained_params = np.load(path, encoding="latin1").item()
+
+        model_params = self.state_dict()
+        for name, val in model_params.items():
+            
+            if name not in pretrained_params:
+                continue
+            param = torch.from_numpy(pretrained_params[name])
+            val.copy_(param)
+
 
     def load_weights(self, base_file):
         other, ext = os.path.splitext(base_file)

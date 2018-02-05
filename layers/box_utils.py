@@ -93,6 +93,7 @@ def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
     best_prior_overlap, best_prior_idx = overlaps.max(1)
     # [1,num_priors] best ground truth for each prior
     best_truth_overlap, best_truth_idx = overlaps.max(0)
+    best_truth_overlap, best_truth_idx = best_truth_overlap.squeeze(), best_truth_idx.squeeze()
     best_truth_overlap.index_fill_(0, best_prior_idx, 2)  # ensure best prior
     # TODO refactor: index  best_prior_idx with long tensor
     # ensure every gt matches with its prior of max overlap

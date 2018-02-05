@@ -34,7 +34,8 @@ def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox Detection')
-parser.add_argument('--trained_model', default='weights/ssd300_mAP_7743_v2.pth',
+parser.add_argument('--trained_model', default='weights/v2.pth',
+#parser.add_argument('--trained_model', default='weights/SSD300.npy',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--save_folder', default='eval/', type=str,
                     help='File path to save results')
@@ -364,6 +365,9 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
     output_dir = get_output_dir('ssd300_120000', set_type)
     det_file = os.path.join(output_dir, 'detections.pkl')
 
+    sum_time = 0.0
+    sum_fps  = 0.0
+
     for i in range(num_images):
         im, gt, h, w = dataset.pull_item(i)
 
@@ -373,6 +377,9 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
         _t['im_detect'].tic()
         detections = net(x).data
         detect_time = _t['im_detect'].toc(average=False)
+
+        sum_time += detect_time
+        sum_fps += 1.0 / detect_time
 
         # skip j = 0, because it's the background class
         for j in range(1, detections.size(1)):
@@ -390,10 +397,12 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
             cls_dets = np.hstack((boxes.cpu().numpy(), scores[:, np.newaxis])) \
                 .astype(np.float32, copy=False)
             all_boxes[j][i] = cls_dets
+        
+        #print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1,
+        #                                            num_images, detect_time))
 
-        print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1,
-                                                    num_images, detect_time))
-
+    print('time: ', sum_time/num_images, 'fps: ', sum_fps/num_images)
+    print('sum: ', net.detect.count, 'mean: ', net.detect.count/num_images)
     with open(det_file, 'wb') as f:
         pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 

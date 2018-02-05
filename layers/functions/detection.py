@@ -24,6 +24,7 @@ class Detect(Function):
         self.conf_thresh = conf_thresh
         self.variance = cfg['variance']
         self.output = torch.zeros(1, self.num_classes, self.top_k, 5)
+        self.count = 0.0
 
     def forward(self, loc_data, conf_data, prior_data):
         """
@@ -53,11 +54,17 @@ class Detect(Function):
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
             num_det = 0
+
+            prior_sum = 0.0
             for cl in range(1, self.num_classes):
+
                 c_mask = conf_scores[cl].gt(self.conf_thresh)
                 scores = conf_scores[cl][c_mask]
                 if scores.dim() == 0:
                     continue
+                # test 20171113
+                prior_sum += scores.size(0)
+
                 l_mask = c_mask.unsqueeze(1).expand_as(decoded_boxes)
                 boxes = decoded_boxes[l_mask].view(-1, 4)
                 
@@ -66,9 +73,10 @@ class Detect(Function):
                 self.output[i, cl, :count] = \
                     torch.cat((scores[ids[:count]].unsqueeze(1),
                                boxes[ids[:count]]), 1)
+            self.count += prior_sum
 
         
-        print(self.output[0, 2, :5])
+        #print(self.output[0, 2, :5])
         flt = self.output.view(-1, 5)
         _, idx = flt[:, 0].sort(0)
         _, rank = idx.sort(0)

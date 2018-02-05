@@ -22,9 +22,9 @@ parser = argparse.ArgumentParser(description='Single Shot MultiBox Detector Trai
 parser.add_argument('--version', default='v2', help='conv11_2(v2) or pool6(v1) as last layer')
 parser.add_argument('--basenet', default='vgg16_reducedfc.pth', help='pretrained base model')
 parser.add_argument('--jaccard_threshold', default=0.5, type=float, help='Min Jaccard index for matching')
-parser.add_argument('--batch_size', default=16, type=int, help='Batch size for training')
+parser.add_argument('--batch_size', default=32, type=int, help='Batch size for training')
 parser.add_argument('--resume', default=None, type=str, help='Resume from checkpoint')
-parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
+parser.add_argument('--num_workers', default=8, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--iterations', default=120000, type=int, help='Number of training iterations')
 parser.add_argument('--start_iter', default=0, type=int, help='Begin counting iterations starting from this value (should be used with resume)')
 parser.add_argument('--cuda', default=True, type=str2bool, help='Use cuda to train model')
@@ -71,20 +71,12 @@ if args.visdom:
 ssd_net = build_ssd('train', 300, 21)
 net = ssd_net
 
-if args.cuda:
-    net = torch.nn.DataParallel(ssd_net)
-
 if args.resume:
     print('Resuming training, loading {}...'.format(args.resume))
     ssd_net.load_weights(args.resume)
 else:
-    vgg_weights = torch.load(args.save_folder + args.basenet)
-    print('Loading base network...')
-    ssd_net.vgg.load_state_dict(vgg_weights)
-
-if args.cuda:
-    net.cuda()
-    cudnn.benchmark = True
+    print('loading base network...')
+    net.load_pretrained_npy('./weights/vgg16_fc_reduced.npy')
 
 
 def xavier(param):
@@ -102,6 +94,12 @@ if not args.resume:
     ssd_net.extras.apply(weights_init)
     ssd_net.loc.apply(weights_init)
     ssd_net.conf.apply(weights_init)
+
+if args.cuda:
+    net = torch.nn.DataParallel(ssd_net)
+if args.cuda:
+    net.cuda()
+    cudnn.benchmark = True
 
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=args.momentum, weight_decay=args.weight_decay)
